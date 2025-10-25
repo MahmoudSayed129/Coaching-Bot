@@ -1,0 +1,9 @@
+flask
+flask-cors
+openai
+numpy
+faiss-cpu
+sentence-transformers
+scikit-learn
+googletrans
+langdetect
