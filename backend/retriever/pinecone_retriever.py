@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 
 class PineconeRetriever:
     def __init__(self, api_key: str, index_name: str):
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self.model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
         self.pinecone = Pinecone(api_key=api_key)
         self.index = self.pinecone.Index(index_name)
 
