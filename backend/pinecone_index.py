@@ -7,7 +7,7 @@ with open("data/coaching_millionaer_dataset.json", "r", encoding="utf-8") as f:
     docs = json.load(f)
 
 # === Init embedding model ===
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer("./model")
 
 # === Init Pinecone ===
 pc = Pinecone(api_key="pcsk_6FCjSE_FFtwDN4PEY5Q7pqKGqGsNgBQrH2Ut9xWcpr3oe1FA28VDPFqei4XtpXMCwb7zdX")

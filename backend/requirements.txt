@@ -1,11 +1,8 @@
 flask
 flask-cors
-openai
-numpy
-faiss-cpu
 sentence-transformers
-scikit-learn
-googletrans
+pinecone-client
 langdetect
-pinecone
-dotenv
+googletrans==4.0.0-rc1
+openai
+python-dotenv
