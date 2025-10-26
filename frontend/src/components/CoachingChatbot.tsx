@@ -66,7 +66,7 @@ const CoachingChatbot = () => {
 
     try {
       const response = await axios.post<ApiResponse>(
-        "http://127.0.0.1:5000/ask",
+        "https://mahmous-chatbot3.hf.space/ask",
         { question: userMessage.text },
         {
           headers: {
