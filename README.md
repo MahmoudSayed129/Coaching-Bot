@@ -87,7 +87,7 @@ jp-mentoring-chatbot/
 
 ### 1. Clone the Repository  
 ```bash
-git clone https://github.com/yourusername/jp-mentoring-chatbot.git
+https://github.com/MahmoudSayed129/Coaching-Bot.git
 cd jp-mentoring-chatbot
 ```
 
@@ -113,7 +113,7 @@ python app.py
 ```bash
 cd ../frontend
 npm install
-npm run dev
+npm start
 ```
 
 Visit: [http://localhost:3000](http://localhost:3000)
