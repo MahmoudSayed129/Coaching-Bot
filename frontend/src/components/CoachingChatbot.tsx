@@ -5,11 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageCircle, Send, AlertCircle } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, Mic, MicOff, X } from "lucide-react";
 import { ApiResponse, ChatMessage, CoachingAnswer } from "@/types/api";
 import { useToast } from "@/hooks/use-toast";
-import LoadingSpinner from "./LoadingSpinner";
+import TypingIndicator from "./TypingIndicator";
 import ChatMessageComponent from "./ChatMessage";
+import logo from "@/assets/logo.png";
 
 const CoachingChatbot = () => {
   const [message, setMessage] = useState("");
@@ -23,6 +24,9 @@ const CoachingChatbot = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcribedText, setTranscribedText] = useState("");
+  const [showTranscription, setShowTranscription] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,7 +70,7 @@ const CoachingChatbot = () => {
 
     try {
       const response = await axios.post<ApiResponse>(
-        "http://127.0.0.1:5000/ask",
+        "https://mahmous-chatbot3.hf.space/ask",
         { question: userMessage.text },
         {
           headers: {
@@ -132,24 +136,94 @@ const CoachingChatbot = () => {
     }
   };
 
+  const startRecording = () => {
+    try {
+      // Check if browser supports Web Speech API
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        toast({
+          variant: "destructive",
+          title: "Not supported",
+          description: "Speech recognition is not supported in your browser.",
+        });
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      // Support both English and German
+      recognition.lang = 'en-US'; // Default to English, will auto-detect
+      
+      recognition.onstart = () => {
+        setIsRecording(true);
+        toast({
+          title: "Recording started",
+          description: "Speak now in English or German...",
+        });
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setTranscribedText(transcript);
+        setMessage(transcript);
+        setShowTranscription(true);
+        toast({
+          title: "Transcription ready",
+          description: "You can edit the text before sending.",
+        });
+      };
+
+      recognition.onerror = (event: any) => {
+        setIsRecording(false);
+        toast({
+          variant: "destructive",
+          title: "Transcription error",
+          description: "Could not transcribe audio. Please try again.",
+        });
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Microphone access denied",
+        description: "Please allow microphone access to use voice input.",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+  };
+
+  const cancelTranscription = () => {
+    setTranscribedText("");
+    setMessage("");
+    setShowTranscription(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-6 max-w-4xl h-screen flex flex-col">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center mb-3">
-            <MessageCircle className="h-8 w-8 text-primary mr-2" />
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              Coaching Chat
-            </h1>
+            <img src={logo} alt="J&P Mentoring" className="h-16 md:h-20" />
           </div>
-          <p className="text-muted-foreground">
-            Your personal development companion
+          <p className="text-muted-foreground text-sm">
+            Your personal development companion powered by AI
           </p>
         </div>
 
         {/* Chat Area */}
-        <Card className="flex-1 shadow-card mb-4 flex flex-col">
+        <Card className="flex-1 shadow-lg border-border/50 backdrop-blur mb-4 flex flex-col">
           <CardContent className="p-0 flex-1 flex flex-col">
             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
               <div className="space-y-2">
@@ -157,13 +231,7 @@ const CoachingChatbot = () => {
                   <ChatMessageComponent key={msg.id} message={msg} />
                 ))}
                 
-                {isLoading && (
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-muted rounded-2xl px-4 py-3 mr-12">
-                      <LoadingSpinner />
-                    </div>
-                  </div>
-                )}
+                {isLoading && <TypingIndicator />}
               </div>
             </ScrollArea>
 
@@ -178,22 +246,51 @@ const CoachingChatbot = () => {
             )}
 
             {/* Input Area */}
-            <div className="p-4 border-t bg-background">
-              <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+            <div className="p-4 border-t bg-background/50 backdrop-blur">
+              {showTranscription && (
+                <div className="mb-3 p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">Transcribed text (editable)</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={cancelTranscription}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="flex gap-2 items-end">
                 <Textarea
                   ref={textareaRef}
                   value={message}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
-                  placeholder="Type your message..."
-                  className="flex-1 min-h-[44px] max-h-32 resize-none"
+                  placeholder="Type your message or use voice input..."
+                  className="flex-1 min-h-[44px] max-h-32 resize-none bg-background"
                   disabled={isLoading}
                   rows={1}
                 />
                 <Button
+                  type="button"
+                  variant={isRecording ? "destructive" : "outline"}
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={isLoading}
+                  className="h-11 w-11 p-0"
+                  title={isRecording ? "Stop recording" : "Start voice input"}
+                >
+                  {isRecording ? (
+                    <MicOff className="h-5 w-5" />
+                  ) : (
+                    <Mic className="h-5 w-5" />
+                  )}
+                </Button>
+                <Button
                   type="submit"
                   disabled={isLoading || !message.trim()}
-                  className="h-11 px-6"
+                  className="h-11 px-6 shadow-sm"
                 >
                   {isLoading ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
