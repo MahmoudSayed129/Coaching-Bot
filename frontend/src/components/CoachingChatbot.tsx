@@ -5,12 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageCircle, Send, AlertCircle, Mic, MicOff, X } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, Mic, MicOff, X, Paperclip, FileText } from "lucide-react";
 import { ApiResponse, ChatMessage, CoachingAnswer } from "@/types/api";
-import { useToast } from "@/hooks/use-toast";
 import TypingIndicator from "./TypingIndicator";
 import ChatMessageComponent from "./ChatMessage";
 import logo from "@/assets/logo.png";
+import * as pdfjsLib from 'pdfjs-dist';
 
 const CoachingChatbot = () => {
   const [message, setMessage] = useState("");
@@ -24,12 +24,17 @@ const CoachingChatbot = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Configure PDF.js worker
+  useEffect(() => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }, []);
   const [isRecording, setIsRecording] = useState(false);
-  const [transcribedText, setTranscribedText] = useState("");
-  const [showTranscription, setShowTranscription] = useState(false);
-  const { toast } = useToast();
+  const [pdfContent, setPdfContent] = useState<string>("");
+  const [pdfFileName, setPdfFileName] = useState<string>("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -47,31 +52,34 @@ const CoachingChatbot = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!message.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Please enter a message",
-        description: "Type your question or message to continue the conversation.",
-      });
+    if (!message.trim() && !pdfContent) {
       return;
+    }
+
+    // Combine message with PDF content if available
+    let fullMessage = message.trim();
+    if (pdfContent) {
+      fullMessage = `${message.trim()}\n\n[PDF Content from "${pdfFileName}"]\n${pdfContent}`;
     }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      text: message.trim(),
+      text: pdfFileName ? `${message.trim()} [PDF: ${pdfFileName}]` : message.trim(),
       isUser: true,
       timestamp: new Date(),
     };
 
     setChatHistory(prev => [...prev, userMessage]);
     setMessage("");
+    setPdfContent("");
+    setPdfFileName("");
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await axios.post<ApiResponse>(
         "https://mahmous-chatbot3.hf.space/ask",
-        { question: userMessage.text },
+        { question: fullMessage },
         {
           headers: {
             "Content-Type": "application/json",
@@ -92,11 +100,6 @@ const CoachingChatbot = () => {
         }));
 
         setChatHistory(prev => [...prev, ...botMessages]);
-        
-        toast({
-          title: "Got your coaching insights!",
-          description: `Received ${response.data.answers.length} helpful response(s).`,
-        });
       } else {
         throw new Error("Invalid response format");
       }
@@ -114,11 +117,6 @@ const CoachingChatbot = () => {
       }
       
       setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage,
-      });
     } finally {
       setIsLoading(false);
     }
@@ -142,11 +140,6 @@ const CoachingChatbot = () => {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       
       if (!SpeechRecognition) {
-        toast({
-          variant: "destructive",
-          title: "Not supported",
-          description: "Speech recognition is not supported in your browser.",
-        });
         return;
       }
 
@@ -154,35 +147,20 @@ const CoachingChatbot = () => {
       recognition.continuous = false;
       recognition.interimResults = false;
       
-      // Support both English and German
-      recognition.lang = 'en-US'; // Default to English, will auto-detect
+      // Auto-detect language - remove language restriction to support both English and German
+      // Browser will automatically detect the spoken language
       
       recognition.onstart = () => {
         setIsRecording(true);
-        toast({
-          title: "Recording started",
-          description: "Speak now in English or German...",
-        });
       };
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setTranscribedText(transcript);
         setMessage(transcript);
-        setShowTranscription(true);
-        toast({
-          title: "Transcription ready",
-          description: "You can edit the text before sending.",
-        });
       };
 
       recognition.onerror = (event: any) => {
         setIsRecording(false);
-        toast({
-          variant: "destructive",
-          title: "Transcription error",
-          description: "Could not transcribe audio. Please try again.",
-        });
       };
 
       recognition.onend = () => {
@@ -191,11 +169,7 @@ const CoachingChatbot = () => {
 
       recognition.start();
     } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Microphone access denied",
-        description: "Please allow microphone access to use voice input.",
-      });
+      console.error("Microphone error:", err);
     }
   };
 
@@ -203,18 +177,67 @@ const CoachingChatbot = () => {
     setIsRecording(false);
   };
 
-  const cancelTranscription = () => {
-    setTranscribedText("");
-    setMessage("");
-    setShowTranscription(false);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      setError('Please upload a PDF file');
+      return;
+    }
+
+    // Validate file size (25MB)
+    const maxSize = 25 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError('PDF file size must be less than 25MB');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+
+      // Extract text from all pages
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+
+      setPdfContent(fullText);
+      setPdfFileName(file.name);
+      
+    } catch (err) {
+      setError('Failed to parse PDF file. Please try another file.');
+      console.error('PDF parsing error:', err);
+    } finally {
+      setIsLoading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removePdf = () => {
+    setPdfContent("");
+    setPdfFileName("");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-6 max-w-4xl h-screen flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
+      <div className="container mx-auto px-4 py-6 max-w-4xl flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center mb-3">
+        <div className="text-center mb-4 flex-shrink-0">
+          <div className="flex items-center justify-center mb-2">
             <img src={logo} alt="J&P Mentoring" className="h-16 md:h-20" />
           </div>
           <p className="text-muted-foreground text-sm">
@@ -223,9 +246,9 @@ const CoachingChatbot = () => {
         </div>
 
         {/* Chat Area */}
-        <Card className="flex-1 shadow-lg border-border/50 backdrop-blur mb-4 flex flex-col">
-          <CardContent className="p-0 flex-1 flex flex-col">
-            <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <Card className="flex-1 shadow-lg border-border/50 backdrop-blur flex flex-col overflow-hidden">
+          <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 p-4 h-full" ref={scrollAreaRef}>
               <div className="space-y-2">
                 {chatHistory.map((msg) => (
                   <ChatMessageComponent key={msg.id} message={msg} />
@@ -247,14 +270,18 @@ const CoachingChatbot = () => {
 
             {/* Input Area */}
             <div className="p-4 border-t bg-background/50 backdrop-blur">
-              {showTranscription && (
+              {pdfFileName && (
                 <div className="mb-3 p-3 bg-muted/50 rounded-lg border border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground">Transcribed text (editable)</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{pdfFileName}</span>
+                      <span className="text-xs text-muted-foreground">({Math.round(pdfContent.length / 1024)}KB)</span>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={cancelTranscription}
+                      onClick={removePdf}
                       className="h-6 w-6 p-0"
                     >
                       <X className="h-4 w-4" />
@@ -263,16 +290,33 @@ const CoachingChatbot = () => {
                 </div>
               )}
               <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
                 <Textarea
                   ref={textareaRef}
                   value={message}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
-                  placeholder="Type your message or use voice input..."
+                  placeholder="Type your message or upload a PDF..."
                   className="flex-1 min-h-[44px] max-h-32 resize-none bg-background"
                   disabled={isLoading}
                   rows={1}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="h-11 w-11 p-0"
+                  title="Upload PDF (max 25MB)"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </Button>
                 <Button
                   type="button"
                   variant={isRecording ? "destructive" : "outline"}
@@ -289,7 +333,7 @@ const CoachingChatbot = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isLoading || !message.trim()}
+                  disabled={isLoading || (!message.trim() && !pdfContent)}
                   className="h-11 px-6 shadow-sm"
                 >
                   {isLoading ? (
