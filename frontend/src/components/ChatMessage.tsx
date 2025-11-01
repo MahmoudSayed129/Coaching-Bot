@@ -43,16 +43,6 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
           </Card>
           
           <div className="flex items-center gap-2 px-1">
-            {message.source && (
-              <Badge variant="outline" className="text-xs">
-                {message.source}
-              </Badge>
-            )}
-            {message.score && (
-              <Badge variant="secondary" className="text-xs">
-                Score: {message.score.toFixed(2)}
-              </Badge>
-            )}
             <span className="text-xs text-muted-foreground">
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>

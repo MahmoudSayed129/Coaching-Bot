@@ -30,6 +30,7 @@ const CoachingChatbot = () => {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
   }, []);
   const [isRecording, setIsRecording] = useState(false);
+  const [voiceLanguage, setVoiceLanguage] = useState<'en-US' | 'de-DE'>('en-US');
   const [pdfContent, setPdfContent] = useState<string>("");
   const [pdfFileName, setPdfFileName] = useState<string>("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -146,9 +147,7 @@ const CoachingChatbot = () => {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      
-      // Auto-detect language - remove language restriction to support both English and German
-      // Browser will automatically detect the spoken language
+      recognition.lang = voiceLanguage;
       
       recognition.onstart = () => {
         setIsRecording(true);
@@ -199,7 +198,15 @@ const CoachingChatbot = () => {
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      // Configure PDF.js to handle various PDF types
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        useSystemFonts: true,
+        verbosity: 0
+      });
+      
+      const pdf = await loadingTask.promise;
       let fullText = '';
 
       // Extract text from all pages
@@ -212,12 +219,17 @@ const CoachingChatbot = () => {
         fullText += pageText + '\n';
       }
 
+      if (fullText.trim().length === 0) {
+        setError('PDF appears to be empty or contains only images. Please use a text-based PDF.');
+        return;
+      }
+
       setPdfContent(fullText);
       setPdfFileName(file.name);
       
     } catch (err) {
-      setError('Failed to parse PDF file. Please try another file.');
       console.error('PDF parsing error:', err);
+      setError('Failed to parse PDF file. The file may be corrupted, password-protected, or in an unsupported format.');
     } finally {
       setIsLoading(false);
       // Reset file input
@@ -317,20 +329,32 @@ const CoachingChatbot = () => {
                 >
                   <Paperclip className="h-5 w-5" />
                 </Button>
-                <Button
-                  type="button"
-                  variant={isRecording ? "destructive" : "outline"}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isLoading}
-                  className="h-11 w-11 p-0"
-                  title={isRecording ? "Stop recording" : "Start voice input"}
-                >
-                  {isRecording ? (
-                    <MicOff className="h-5 w-5" />
-                  ) : (
-                    <Mic className="h-5 w-5" />
-                  )}
-                </Button>
+                <div className="flex gap-1">
+                  <select
+                    value={voiceLanguage}
+                    onChange={(e) => setVoiceLanguage(e.target.value as 'en-US' | 'de-DE')}
+                    disabled={isLoading || isRecording}
+                    className="h-11 px-2 rounded-md border border-input bg-background text-xs"
+                    title="Select voice input language"
+                  >
+                    <option value="en-US">EN</option>
+                    <option value="de-DE">DE</option>
+                  </select>
+                  <Button
+                    type="button"
+                    variant={isRecording ? "destructive" : "outline"}
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isLoading}
+                    className="h-11 w-11 p-0"
+                    title={isRecording ? "Stop recording" : "Start voice input"}
+                  >
+                    {isRecording ? (
+                      <MicOff className="h-5 w-5" />
+                    ) : (
+                      <Mic className="h-5 w-5" />
+                    )}
+                  </Button>
+                </div>
                 <Button
                   type="submit"
                   disabled={isLoading || (!message.trim() && !pdfContent)}
