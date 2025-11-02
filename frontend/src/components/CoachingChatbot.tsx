@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageCircle, Send, AlertCircle, Mic, MicOff, X, Paperclip, FileText } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, Mic, MicOff, X, Paperclip, FileText, Phone } from "lucide-react";
 import { ApiResponse, ChatMessage, CoachingAnswer } from "@/types/api";
 import TypingIndicator from "./TypingIndicator";
 import ChatMessageComponent from "./ChatMessage";
+import VoiceChatOverlay from "./VoiceChatOverlay";
 import logo from "@/assets/logo.png";
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -33,6 +34,7 @@ const CoachingChatbot = () => {
   const [voiceLanguage, setVoiceLanguage] = useState<'en-US' | 'de-DE'>('en-US');
   const [pdfContent, setPdfContent] = useState<string>("");
   const [pdfFileName, setPdfFileName] = useState<string>("");
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -245,17 +247,27 @@ const CoachingChatbot = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-      <div className="container mx-auto px-4 py-6 max-w-4xl flex-1 flex flex-col min-h-0">
-        {/* Header */}
-        <div className="text-center mb-4 flex-shrink-0">
-          <div className="flex items-center justify-center mb-2">
-            <img src={logo} alt="J&P Mentoring" className="h-16 md:h-20" />
+    <>
+      {showVoiceChat && <VoiceChatOverlay onClose={() => setShowVoiceChat(false)} />}
+      
+      <div className="h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
+        <div className="container mx-auto px-4 py-6 max-w-4xl flex-1 flex flex-col min-h-0">
+          {/* Header */}
+          <div className="text-center mb-4 flex-shrink-0">
+            <div className="flex items-center justify-center gap-4 mb-2">
+              <img src={logo} alt="J&P Mentoring" className="h-16 md:h-20" />
+              <Button
+                onClick={() => setShowVoiceChat(true)}
+                className="rounded-full w-12 h-12 shadow-lg"
+                title="Start Voice Chat"
+              >
+                <Phone className="h-5 w-5" />
+              </Button>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Your personal development companion powered by AI
+            </p>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Your personal development companion powered by AI
-          </p>
-        </div>
 
         {/* Chat Area */}
         <Card className="flex-1 shadow-lg border-border/50 backdrop-blur flex flex-col overflow-hidden">
@@ -372,6 +384,7 @@ const CoachingChatbot = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 
