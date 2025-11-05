@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, PhoneOff } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import coachImage from '@/assets/coach-image.png';
 
 interface VoiceChatOverlayProps {
@@ -9,7 +11,6 @@ interface VoiceChatOverlayProps {
 
 const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [aiResponse, setAiResponse] = useState('');
@@ -18,16 +19,12 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const stoppedRef = useRef(false); // ✅ Prevent restarts after cleanup
 
   useEffect(() => {
     startTimer();
-    initializeAudio();
-
     return () => {
       cleanup();
     };
@@ -45,54 +42,47 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const initializeAudio = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      audioContextRef.current = new AudioContext();
-      startRecording(stream);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording and send audio
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+    } else {
+      // Start recording
+      try {
+        if (!streamRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          streamRef.current = stream;
+        }
+        
+        audioChunksRef.current = [];
+        
+        const mediaRecorder = new MediaRecorder(streamRef.current, {
+          mimeType: 'audio/webm',
+        });
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          if (audioChunksRef.current.length > 0) {
+            await sendAudioToBackend();
+          }
+          audioChunksRef.current = [];
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        mediaRecorderRef.current = mediaRecorder;
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+      }
     }
-  };
-
-  const startRecording = (stream: MediaStream) => {
-    if (stoppedRef.current) return; // ✅ Skip if already stopped
-    if (!stream.active) return;
-
-    audioChunksRef.current = [];
-
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm',
-    });
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunksRef.current.push(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = async () => {
-      if (stoppedRef.current) return; // ✅ Don't restart if closed
-      if (!isMuted && audioChunksRef.current.length > 0) {
-        await sendAudioToBackend();
-      }
-      audioChunksRef.current = [];
-
-      if (!isMuted && streamRef.current && streamRef.current.active) {
-        startRecording(streamRef.current);
-      }
-    };
-
-    mediaRecorder.start();
-    setIsRecording(true);
-    mediaRecorderRef.current = mediaRecorder;
-
-    setTimeout(() => {
-      if (mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
-    }, 5000);
   };
 
   const sendAudioToBackend = async () => {
@@ -142,32 +132,36 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
         currentAudioRef.current = null;
       };
 
-      await audio.play();
+      // Mobile-friendly audio playback
+      audio.load();
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Error playing audio:', error);
+          setIsSpeaking(false);
+        });
+      }
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsSpeaking(false);
     }
   };
 
-  const toggleMute = () => {
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-
-    if (newMutedState) {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
-      setIsRecording(false);
-    } else {
-      if (streamRef.current && streamRef.current.active) {
-        startRecording(streamRef.current);
-      }
+  const stopSpeaking = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current.src = '';
+      currentAudioRef.current.load();
+      currentAudioRef.current.onended = null;
+      currentAudioRef.current.onerror = null;
+      currentAudioRef.current = null;
     }
+    setIsSpeaking(false);
   };
 
   const cleanup = () => {
-    stoppedRef.current = true; // ✅ Prevent any restart
-
     if (timerRef.current) clearInterval(timerRef.current);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -179,24 +173,20 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
       streamRef.current = null;
     }
 
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current.src = '';
+      currentAudioRef.current.load();
+      currentAudioRef.current.onended = null;
+      currentAudioRef.current.onerror = null;
       currentAudioRef.current = null;
     }
+    
+    setIsSpeaking(false);
   };
 
   const handleEndCall = () => {
-    // Stop any playing audio immediately
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
-    }
     cleanup();
     onClose();
   };
@@ -253,8 +243,8 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
               className={`absolute inset-0 rounded-full transition-all duration-1000 ${
                 isSpeaking
                   ? 'bg-primary/20 blur-2xl scale-110 animate-pulse'
-                  : isRecording && !isMuted
-                  ? 'bg-accent/20 blur-xl scale-105 animate-pulse'
+                  : isRecording
+                  ? 'bg-red-500/20 blur-xl scale-105 animate-pulse'
                   : 'bg-primary/10 blur-lg'
               }`}
             />
@@ -264,8 +254,8 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
               className={`relative w-48 h-48 rounded-full overflow-hidden border-4 transition-all duration-500 ${
                 isSpeaking
                   ? 'border-primary shadow-2xl'
-                  : isRecording && !isMuted
-                  ? 'border-accent shadow-lg'
+                  : isRecording
+                  ? 'border-red-500 shadow-lg'
                   : 'border-border shadow-md'
               }`}
             >
@@ -295,56 +285,85 @@ const VoiceChatOverlay = ({ onClose }: VoiceChatOverlayProps) => {
         <h2 className="text-2xl font-semibold mb-2">J&P Mentoring</h2>
 
         {/* Status Badge */}
-        {(isSpeaking || isProcessing || (isRecording && !isMuted)) && (
+        {(isSpeaking || isProcessing || isRecording) && (
           <div className={`mb-6 px-4 py-1 rounded-full text-sm animate-pulse ${
             isProcessing 
               ? 'bg-accent/20 text-accent' 
               : isSpeaking 
               ? 'bg-primary/20 text-primary'
-              : 'bg-accent/20 text-accent'
+              : 'bg-red-500/20 text-red-500'
           }`}>
-            {isProcessing ? 'Processing...' : isSpeaking ? 'Talking' : 'Listening'}
+            {isProcessing ? 'Processing...' : isSpeaking ? 'Talking' : 'Recording...'}
           </div>
         )}
 
         {/* Transcripts */}
-        <div className="w-full max-w-md mb-8 space-y-3 min-h-[120px]">
+        <div className="w-full max-w-md mb-8 space-y-3 min-h-[120px] max-h-[200px] overflow-y-auto">
           {transcript && (
             <div className="text-sm bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50 animate-fade-in">
               <p className="text-xs text-muted-foreground mb-1">You said:</p>
-              <p className="text-foreground">{transcript}</p>
+              <div className="text-foreground prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {transcript}
+                </ReactMarkdown>
+              </div>
             </div>
           )}
 
           {aiResponse && (
             <div className="text-sm bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50 animate-fade-in">
               <p className="text-xs text-muted-foreground mb-1">Coach says:</p>
-              <p className="text-foreground">{aiResponse}</p>
+              <div className="text-foreground prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {aiResponse}
+                </ReactMarkdown>
+              </div>
             </div>
           )}
         </div>
 
         {/* Control Buttons */}
-        <div className="flex gap-6 items-center">
+        <div className="flex gap-4 items-center">
+          {isSpeaking && (
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={stopSpeaking}
+              className="w-16 h-16 rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              <MicOff className="h-7 w-7" />
+            </Button>
+          )}
+          
           <Button
             size="lg"
-            variant={isMuted ? 'outline' : 'default'}
-            onClick={toggleMute}
-            className={`w-14 h-14 rounded-full transition-all ${
-              isMuted ? 'bg-muted' : 'bg-primary hover:bg-primary/90'
+            variant={isRecording ? 'destructive' : 'default'}
+            onClick={toggleRecording}
+            disabled={isProcessing || isSpeaking}
+            className={`w-16 h-16 rounded-full transition-all ${
+              isRecording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-primary hover:bg-primary/90'
             }`}
           >
-            {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+            {isRecording ? <MicOff className="h-7 w-7" /> : <Mic className="h-7 w-7" />}
           </Button>
 
           <Button
             size="lg"
             onClick={handleEndCall}
-            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white"
+            className="w-14 h-14 rounded-full bg-destructive hover:bg-destructive/90"
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
         </div>
+        
+        {/* Instructions */}
+        <p className="mt-4 text-xs text-muted-foreground text-center">
+          {isSpeaking 
+            ? 'Click the stop button to interrupt and ask another question' 
+            : isRecording 
+            ? 'Click the mic button again to stop and send' 
+            : 'Click the mic button to start speaking'}
+        </p>
       </div>
     </div>
   );
