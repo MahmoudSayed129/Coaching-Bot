@@ -18,7 +18,7 @@ const CoachingChatbot = () => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
     {
       id: "welcome",
-      text: "Hallo, ich bin Javid von J&P Mentoring. Schön, dass du hier bist! Lass uns über dein Business, dessen Skalierung oder deine nächsten Ziele sprechen – ich helfe dir, den nächsten Schritt zu machen.",
+      text: "Hallo, ich bin Javid von J&P Mentoring. Schön, dass du hier bist! Lass uns über dein Business, dessen Skalierung oder deine nächsten Ziele sprechen – ich helfe dir, den nächsten Schritt zu machen. Stell mir eine Frage.",
       isUser: false,
       timestamp: new Date(),
     }
