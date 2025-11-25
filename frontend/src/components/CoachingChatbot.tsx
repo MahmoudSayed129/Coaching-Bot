@@ -5,12 +5,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, AlertCircle, Mic, MicOff, Phone } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiResponse, ChatMessage, CoachingAnswer } from "@/types/api";
 import TypingIndicator from "./TypingIndicator";
 import ChatMessageComponent from "./ChatMessage";
 import VoiceChatOverlay from "./VoiceChatOverlay";
+import AppsGenerator from "./AppsGenerator";
 import logo from "@/assets/logo.png";
 
 const CoachingChatbot = () => {
@@ -18,7 +20,7 @@ const CoachingChatbot = () => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
     {
       id: "welcome",
-      text: "Hallo, ich bin Javid von J&P Mentoring. Schön, dass du hier bist! Lass uns über dein Business, dein Mindset oder deine nächsten Ziele sprechen – ich helfe dir, den nächsten Schritt zu machen.",
+      text: "Hallo, ich bin Javid von J&P Mentoring. Schön, dass du hier bist! Lass uns über dein Business, dein Mindset oder deine nächsten Ziele sprechen – ich helfe dir, den nächsten Schritt zu machen. Stell mir eine Frage.",
       isUser: false,
       timestamp: new Date(),
     }
@@ -157,7 +159,7 @@ const CoachingChatbot = () => {
       {showVoiceChat && <VoiceChatOverlay onClose={() => setShowVoiceChat(false)} />}
 
       <div className="h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-        <div className="container mx-auto px-4 py-6 max-w-4xl flex-1 flex flex-col min-h-0">
+        <div className="container mx-auto px-4 py-6 max-w-6xl flex-1 flex flex-col min-h-0">
 
           {/* Header */}
           <div className="text-center mb-4 flex-shrink-0">
@@ -176,86 +178,115 @@ const CoachingChatbot = () => {
             </p>
           </div>
 
-          {/* Chat Area */}
-          <Card className="flex-1 shadow-lg border-border/50 backdrop-blur flex flex-col overflow-hidden">
-            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-              <ScrollArea className="flex-1 p-4 h-full" ref={scrollAreaRef}>
-                <div className="space-y-2">
-                  {chatHistory.map((msg) => (
-                    <ChatMessageComponent key={msg.id} message={msg} />
-                  ))}
-                  {isLoading && <TypingIndicator />}
-                </div>
-              </ScrollArea>
+          {/* Tabs */}
+          <Tabs defaultValue="chatbot" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-4 bg-muted/50 p-1.5 rounded-xl shadow-md">
+              <TabsTrigger 
+                value="chatbot" 
+                className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+              >
+                J&P KI
+              </TabsTrigger>
+              <TabsTrigger 
+                value="apps"
+                className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+              >
+                APPs
+              </TabsTrigger>
+            </TabsList>
 
-              {/* Error Display */}
-              {error && (
-                <div className="p-4 border-t">
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                </div>
-              )}
-
-              {/* Input Area */}
-              <div className="p-4 border-t bg-background/50 backdrop-blur">
-                <form onSubmit={handleSubmit} className="flex gap-2 items-end">
-                  <Textarea
-                    ref={textareaRef}
-                    value={message}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Schreibe deine Nachricht..."
-                    className="flex-1 min-h-[44px] max-h-32 resize-none bg-background"
-                    disabled={isLoading}
-                    rows={1}
-                  />
-                  <div className="flex gap-2 items-center h-11">
-                    {/* Hidden language select, kept for future use */}
-                    <div className="hidden">
-                      <Select
-                        value={voiceLanguage}
-                        onValueChange={(value) => setVoiceLanguage(value as 'en-US' | 'de-DE')}
-                        disabled={isLoading || isRecording}
-                      >
-                        <SelectTrigger className="w-[85px] h-11 bg-background border-input">
-                          <Mic className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover z-50">
-                          <SelectItem value="en-US">English</SelectItem>
-                          <SelectItem value="de-DE">Deutsch</SelectItem>
-                        </SelectContent>
-                      </Select>
+            {/* Chatbot Tab */}
+            <TabsContent value="chatbot" className="flex-1 m-0 min-h-0">
+              <Card className="h-full shadow-lg border-border/50 backdrop-blur flex flex-col overflow-hidden">
+                <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+                  <ScrollArea className="flex-1 p-4 h-full" ref={scrollAreaRef}>
+                    <div className="space-y-2">
+                      {chatHistory.map((msg) => (
+                        <ChatMessageComponent key={msg.id} message={msg} />
+                      ))}
+                      {isLoading && <TypingIndicator />}
                     </div>
+                  </ScrollArea>
 
-                    <Button
-                      type="button"
-                      variant={isRecording ? "destructive" : "outline"}
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={isLoading}
-                      className="h-11 w-11 p-0"
-                      title={isRecording ? "Aufnahme stoppen" : "Spracheingabe starten"}
-                    >
-                      {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                    </Button>
+                  {/* Error Display */}
+                  {error && (
+                    <div className="p-4 border-t">
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+
+                  {/* Input Area */}
+                  <div className="p-4 border-t bg-background/50 backdrop-blur">
+                    <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+                      <Textarea
+                        ref={textareaRef}
+                        value={message}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyPress}
+                        placeholder="Schreibe deine Nachricht..."
+                        className="flex-1 min-h-[44px] max-h-32 resize-none bg-background"
+                        disabled={isLoading}
+                        rows={1}
+                      />
+                      <div className="flex gap-2 items-center h-11">
+                        {/* Hidden language select, kept for future use */}
+                        <div className="hidden">
+                          <Select
+                            value={voiceLanguage}
+                            onValueChange={(value) => setVoiceLanguage(value as 'en-US' | 'de-DE')}
+                            disabled={isLoading || isRecording}
+                          >
+                            <SelectTrigger className="w-[85px] h-11 bg-background border-input">
+                              <Mic className="h-4 w-4 mr-1 text-muted-foreground" />
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover z-50">
+                              <SelectItem value="en-US">English</SelectItem>
+                              <SelectItem value="de-DE">Deutsch</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant={isRecording ? "destructive" : "outline"}
+                          onClick={isRecording ? stopRecording : startRecording}
+                          disabled={isLoading}
+                          className="h-11 w-11 p-0"
+                          title={isRecording ? "Aufnahme stoppen" : "Spracheingabe starten"}
+                        >
+                          {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                        </Button>
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={isLoading || !message.trim()}
+                        className="h-11 px-6 shadow-sm"
+                      >
+                        {isLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </form>
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !message.trim()}
-                    className="h-11 px-6 shadow-sm"
-                  >
-                    {isLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* APPs Tab */}
+            <TabsContent value="apps" className="flex-1 m-0 min-h-0">
+              <Card className="h-full shadow-lg border-border/50 backdrop-blur overflow-hidden">
+                <ScrollArea className="h-full">
+                  <AppsGenerator />
+                </ScrollArea>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </>
