@@ -186,7 +186,7 @@ const AppsGenerator = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Form Section */}
         <Card className="border-2 shadow-lg bg-gradient-to-br from-background to-muted/20">
           <CardHeader className="space-y-4 pb-6">
@@ -227,20 +227,22 @@ const AppsGenerator = () => {
                   )}
                 </div>
               ))}
-              <Button 
-                type="submit" 
-                className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg hover:shadow-xl" 
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Content'
-                )}
-              </Button>
+              <div className="flex justify-center">
+            <Button
+              type="submit"
+              className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-md hover:shadow-lg"
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Generate Content'
+              )}
+            </Button>
+          </div>
             </form>
           </CardContent>
         </Card>
