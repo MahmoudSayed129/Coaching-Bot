@@ -22,60 +22,60 @@ interface AppConfig {
 const apps: AppConfig[] = [
   {
     id: 'youtube',
-    title: 'YouTube Script',
-    description: 'Generate engaging YouTube video scripts',
+    title: 'YouTube-Skript',
+    description: 'Erstellen Sie ansprechende YouTube-Video-Skripte',
     icon: <Youtube className="h-6 w-6" />,
     questions: [
-      { id: 'topic', label: 'Video Topic', type: 'text', placeholder: 'E.g., How to start a business' },
-      { id: 'duration', label: 'Video Duration (minutes)', type: 'text', placeholder: 'E.g., 10' },
-      { id: 'tone', label: 'Tone', type: 'text', placeholder: 'E.g., Educational, Entertaining' },
-      { id: 'audience', label: 'Target Audience', type: 'text', placeholder: 'E.g., Entrepreneurs, Students' },
+      { id: 'topic', label: 'Video-Thema', type: 'text', placeholder: 'Z.B., Wie man ein Unternehmen gründet' },
+      { id: 'duration', label: 'Videodauer (Minuten)', type: 'text', placeholder: 'Z.B., 10' },
+      { id: 'tone', label: 'Tonfall', type: 'text', placeholder: 'Z.B., Bildend, Unterhaltsam' },
+      { id: 'audience', label: 'Zielgruppe', type: 'text', placeholder: 'Z.B., Unternehmer, Studenten' },
     ]
   },
   {
     id: 'facebook',
-    title: 'Facebook Ad',
-    description: 'Create compelling Facebook ad copy',
+    title: 'Facebook-Anzeige',
+    description: 'Erstellen Sie überzeugende Facebook-Werbetexte',
     icon: <Facebook className="h-6 w-6" />,
     questions: [
-      { id: 'product', label: 'Product/Service', type: 'text', placeholder: 'What are you selling?' },
-      { id: 'benefit', label: 'Main Benefit', type: 'textarea', placeholder: 'What problem does it solve?' },
-      { id: 'audience', label: 'Target Audience', type: 'text', placeholder: 'Who is your ideal customer?' },
-      { id: 'cta', label: 'Call to Action', type: 'text', placeholder: 'E.g., Shop Now, Learn More' },
+      { id: 'product', label: 'Produkt/Dienstleistung', type: 'text', placeholder: 'Was verkaufen Sie?' },
+      { id: 'benefit', label: 'Hauptvorteil', type: 'textarea', placeholder: 'Welches Problem löst es?' },
+      { id: 'audience', label: 'Zielgruppe', type: 'text', placeholder: 'Wer ist Ihr idealer Kunde?' },
+      { id: 'cta', label: 'Handlungsaufforderung', type: 'text', placeholder: 'Z.B., Jetzt kaufen, Mehr erfahren' },
     ]
   },
   {
     id: 'instagram',
-    title: 'Instagram Caption',
-    description: 'Generate engaging Instagram captions',
+    title: 'Instagram-Beschriftung',
+    description: 'Generieren Sie ansprechende Instagram-Beschriftungen',
     icon: <Instagram className="h-6 w-6" />,
     questions: [
-      { id: 'topic', label: 'Post Topic', type: 'text', placeholder: 'What is your post about?' },
-      { id: 'mood', label: 'Mood/Style', type: 'text', placeholder: 'E.g., Motivational, Funny, Professional' },
-      { id: 'hashtags', label: 'Number of Hashtags', type: 'text', placeholder: 'E.g., 5-10' },
+      { id: 'topic', label: 'Beitragsthema', type: 'text', placeholder: 'Worum geht es in Ihrem Beitrag?' },
+      { id: 'mood', label: 'Stimmung/Stil', type: 'text', placeholder: 'Z.B., Motivierend, Lustig, Professionell' },
+      { id: 'hashtags', label: 'Anzahl der Hashtags', type: 'text', placeholder: 'Z.B., 5-10' },
     ]
   },
   {
     id: 'email',
-    title: 'Email Campaign',
-    description: 'Write effective email marketing copy',
+    title: 'E-Mail-Kampagne',
+    description: 'Schreiben Sie effektive E-Mail-Marketing-Texte',
     icon: <Mail className="h-6 w-6" />,
     questions: [
-      { id: 'subject', label: 'Email Purpose', type: 'text', placeholder: 'E.g., Product launch, Newsletter' },
-      { id: 'offer', label: 'Offer/Message', type: 'textarea', placeholder: 'What are you offering?' },
-      { id: 'audience', label: 'Recipient', type: 'text', placeholder: 'Who are you sending to?' },
+      { id: 'subject', label: 'E-Mail-Zweck', type: 'text', placeholder: 'Z.B., Produkteinführung, Newsletter' },
+      { id: 'offer', label: 'Angebot/Nachricht', type: 'textarea', placeholder: 'Was bieten Sie an?' },
+      { id: 'audience', label: 'Empfänger', type: 'text', placeholder: 'An wen senden Sie?' },
     ]
   },
   {
     id: 'blog',
-    title: 'Blog Post',
-    description: 'Create SEO-optimized blog content',
+    title: 'Blogbeitrag',
+    description: 'Erstellen Sie SEO-optimierte Blog-Inhalte',
     icon: <FileText className="h-6 w-6" />,
     questions: [
-      { id: 'topic', label: 'Blog Topic', type: 'text', placeholder: 'What is your blog about?' },
-      { id: 'keywords', label: 'Keywords', type: 'text', placeholder: 'E.g., SEO, marketing, business' },
-      { id: 'length', label: 'Approximate Length (words)', type: 'text', placeholder: 'E.g., 500, 1000' },
-      { id: 'style', label: 'Writing Style', type: 'text', placeholder: 'E.g., Professional, Casual, Technical' },
+      { id: 'topic', label: 'Blog-Thema', type: 'text', placeholder: 'Worum geht es in Ihrem Blog?' },
+      { id: 'keywords', label: 'Schlüsselwörter', type: 'text', placeholder: 'Z.B., SEO, Marketing, Geschäft' },
+      { id: 'length', label: 'Ungefähre Länge (Wörter)', type: 'text', placeholder: 'Z.B., 500, 1000' },
+      { id: 'style', label: 'Schreibstil', type: 'text', placeholder: 'Z.B., Professionell, Locker, Technisch' },
     ]
   }
 ];
@@ -129,14 +129,14 @@ const AppsGenerator = () => {
       const result = await response.json();
       
       if (!response.ok) {
-        setGeneratedContent(result.error || 'Error generating content. Please try again.');
+        setGeneratedContent(result.error || 'Fehler beim Generieren des Inhalts. Bitte versuchen Sie es erneut.');
       } else {
         // YouTube returns 'script', others return 'content' or 'generated_content'
-        setGeneratedContent(result.script || result.content || result.generated_content || 'No content generated');
+        setGeneratedContent(result.script || result.content || result.generated_content || 'Kein Inhalt generiert');
       }
     } catch (error) {
       console.error('Generation error:', error);
-      setGeneratedContent('Error generating content. Please try again.');
+      setGeneratedContent('Fehler beim Generieren des Inhalts. Bitte versuchen Sie es erneut.');
     } finally {
       setIsGenerating(false);
     }
@@ -153,9 +153,9 @@ const AppsGenerator = () => {
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <div className="mb-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-            AI Content Generators
+            KI-Inhaltsgeneratoren
           </h2>
-          <p className="text-muted-foreground text-lg">Choose a generator to create professional content instantly</p>
+          <p className="text-muted-foreground text-lg">Wählen Sie einen Generator, um sofort professionelle Inhalte zu erstellen</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {apps.map((app) => (
@@ -182,7 +182,7 @@ const AppsGenerator = () => {
     <div className="p-6 md:p-8 max-w-7xl mx-auto animate-fade-in">
       <div className="mb-6">
         <Button variant="ghost" onClick={handleReset} className="hover:bg-primary/10">
-          ← Back to Apps
+          ← Zurück zu Apps
         </Button>
       </div>
 
@@ -236,10 +236,10 @@ const AppsGenerator = () => {
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  Wird erstellt...
                 </>
               ) : (
-                'Generate Content'
+                'Inhalt generieren'
               )}
             </Button>
           </div>
@@ -250,9 +250,9 @@ const AppsGenerator = () => {
         {/* Result Section */}
         <Card className="flex flex-col border-2 shadow-lg bg-gradient-to-br from-background to-muted/20">
           <CardHeader className="pb-4">
-            <CardTitle className="text-2xl">Generated Content</CardTitle>
+            <CardTitle className="text-2xl">Generierter Inhalt</CardTitle>
             <CardDescription className="text-base">
-              {generatedContent ? '✨ Your AI-generated content is ready' : 'Fill the form and click generate'}
+              {generatedContent ? '✨ Ihr KI-generierter Inhalt ist bereit' : 'Füllen Sie das Formular aus und klicken Sie auf Generieren'}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
@@ -260,7 +260,7 @@ const AppsGenerator = () => {
               {isGenerating ? (
                 <div className="flex flex-col items-center justify-center h-full space-y-4">
                   <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <p className="text-muted-foreground animate-pulse">Creating your content...</p>
+                  <p className="text-muted-foreground animate-pulse">Ihr Inhalt wird erstellt...</p>
                 </div>
               ) : generatedContent ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none animate-fade-in [&>h1]:text-2xl [&>h2]:text-xl [&>h3]:text-lg [&>p]:leading-relaxed [&>ul]:my-4 [&>ol]:my-4">
@@ -271,8 +271,8 @@ const AppsGenerator = () => {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
                   <FileText className="h-16 w-16 text-muted-foreground/30" />
-                  <p className="text-muted-foreground">No content generated yet</p>
-                  <p className="text-sm text-muted-foreground/70">Complete the form to get started</p>
+                  <p className="text-muted-foreground">Noch kein Inhalt generiert</p>
+                  <p className="text-sm text-muted-foreground/70">Füllen Sie das Formular aus, um zu beginnen</p>
                 </div>
               )}
             </ScrollArea>
