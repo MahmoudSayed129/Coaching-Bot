@@ -190,16 +190,37 @@ const AppsGenerator = () => {
     return fullText;
   };
 
-  const handlePdfUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Word extraction function
+  const extractTextFromWord = async (file: File): Promise<string> => {
+    const mammoth = await import('mammoth');
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value;
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || file.type !== 'application/pdf') return;
+    if (!file) return;
+
+    const isPdf = file.type === 'application/pdf';
+    const isWord = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                   file.type === 'application/msword' ||
+                   file.name.endsWith('.docx') ||
+                   file.name.endsWith('.doc');
+
+    if (!isPdf && !isWord) return;
 
     try {
-      const text = await extractTextFromPdf(file);
+      let text = '';
+      if (isPdf) {
+        text = await extractTextFromPdf(file);
+      } else if (isWord) {
+        text = await extractTextFromWord(file);
+      }
       setUploadedPdfText(text);
       setUploadedFileName(file.name);
     } catch (error) {
-      console.error('PDF extraction error:', error);
+      console.error('File extraction error:', error);
       setUploadedFileName('');
     }
   };
@@ -363,15 +384,15 @@ const AppsGenerator = () => {
               <input
                 type="file"
                 ref={fileInputRef}
-                accept="application/pdf"
-                onChange={handlePdfUpload}
+                accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.doc,.docx"
+                onChange={handleFileUpload}
                 className="hidden"
               />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Upload className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">PDF-Dokument hochladen (optional)</p>
+                    <p className="font-medium">Dokument hochladen (optional)</p>
                     <p className="text-sm text-muted-foreground">
                       {uploadedFileName ? (
                         <span className="text-primary font-medium">✓ {uploadedFileName}</span>
