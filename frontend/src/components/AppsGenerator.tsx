@@ -117,9 +117,13 @@ const apps: AppConfig[] = [
   }
 ];
 
+// Apps that need user name (content as if user speaks)
+const appsNeedingUserName: AppType[] = ['youtube', 'storytelling', 'webinar'];
+
 const AppsGenerator = () => {
   const [selectedApp, setSelectedApp] = useState<AppType>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [userName, setUserName] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string>('');
   const [uploadedPdfText, setUploadedPdfText] = useState<string>('');
@@ -128,6 +132,7 @@ const AppsGenerator = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentApp = apps.find(app => app.id === selectedApp);
+  const needsUserName = selectedApp && appsNeedingUserName.includes(selectedApp);
 
   const handleInputChange = (id: string, value: string) => {
     setFormData(prev => ({ ...prev, [id]: value }));
@@ -276,9 +281,11 @@ const AppsGenerator = () => {
 
     try {
       let response;
-      const dataWithPdf = uploadedPdfText 
-        ? { ...formData, pdfContent: uploadedPdfText }
-        : formData;
+      const dataWithExtras = {
+        ...formData,
+        ...(uploadedPdfText && { pdfContent: uploadedPdfText }),
+        ...(needsUserName && userName && { userName: userName })
+      };
       
       if (selectedApp === 'youtube') {
         response = await fetch('https://mahmous-chatbot3.hf.space/youtube-script', {
@@ -289,7 +296,8 @@ const AppsGenerator = () => {
             duration_minutes: formData.duration || '',
             tone: formData.tone || '',
             target_audience: formData.audience || '',
-            pdfContent: uploadedPdfText || undefined
+            pdfContent: uploadedPdfText || undefined,
+            userName: userName || undefined
           })
         });
       } else {
@@ -298,7 +306,7 @@ const AppsGenerator = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             appType: selectedApp,
-            data: dataWithPdf
+            data: dataWithExtras
           })
         });
       }
@@ -321,6 +329,7 @@ const AppsGenerator = () => {
   const handleReset = () => {
     setSelectedApp(null);
     setFormData({});
+    setUserName('');
     setGeneratedContent('');
     setUploadedPdfText('');
     setUploadedFileName('');
@@ -431,6 +440,27 @@ const AppsGenerator = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* User Name Field - only for apps that need personalization */}
+              {needsUserName && (
+                <div className="space-y-2 animate-fade-in p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <Label htmlFor="userName" className="text-base font-medium flex items-center gap-2">
+                    Ihr Name
+                    <span className="text-sm font-normal text-muted-foreground">(für personalisierte Inhalte)</span>
+                  </Label>
+                  <Input
+                    id="userName"
+                    type="text"
+                    placeholder="Z.B., Max Mustermann"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    className="border-2 focus:border-primary/50 transition-colors"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Der Inhalt wird so erstellt, als ob Sie selbst sprechen/präsentieren.
+                  </p>
+                </div>
+              )}
+
               {currentApp?.questions.map((question, index) => (
                 <div key={question.id} className="space-y-2 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                   <Label htmlFor={question.id} className="text-base font-medium">{question.label}</Label>
